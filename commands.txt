@@ -1,5 +1,12 @@
-#port forwarding
+# This file controls the system's network parameters.
+nano /etc/sysctl.conf
+net.ipv4.ip_forward = 1
+
+# reload new sysctl settings
+sudo sysctl -p
+
+# port forwarding
 sudo iptables -A PREROUTING -t nat -p tcp --dport 61222 -j DNAT --to-destination IP:61222
 
-#disable loopback
+# disable loopback
 sudo iptables -t nat -A POSTROUTING ! -s 127.0.0.1 -j MASQUERADE
