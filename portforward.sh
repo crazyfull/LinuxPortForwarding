@@ -53,6 +53,7 @@ function clear() {
   # 
   for rule_number in $rule_numbers; do
     sudo iptables -t nat -D PREROUTING $rule_number
+    echo "delete rule $rule_number"
   done
 }
 
