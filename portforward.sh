@@ -40,9 +40,14 @@ function addPort() {
   
   sudo iptables -A PREROUTING -t nat -p tcp --dport $destPort -j DNAT --to-destination $destIP:$destPort -m comment --comment "#portForwarding"
   sudo iptables -A PREROUTING -t nat -p udp --dport $destPort -j DNAT --to-destination $destIP:$destPort -m comment --comment "#portForwarding"
-  #disable loopback
-  sudo iptables -t nat -A POSTROUTING ! -s 127.0.0.1 -j MASQUERADE
   
+  #disable loopback
+  rule_output=$(sudo iptables -t nat -L POSTROUTING --line-numbers)
+  # check before added
+  if ! [[ $rule_output == *"! -s 127.0.0.1 -j MASQUERADE"* ]]; then
+    sudo iptables -t nat -A POSTROUTING ! -s 127.0.0.1 -j MASQUERADE
+  fi
+
   echo -e "\nadded port forwarding [TCP/UDP] from [$currentvIPv4:$destPort] to [$destIP:$destPort]"
 }
 
@@ -52,8 +57,8 @@ function clear() {
   
   # 
   for rule_number in $rule_numbers; do
-    sudo iptables -t nat -D PREROUTING $rule_number
     echo "delete rule $rule_number"
+    sudo iptables -t nat -D PREROUTING $rule_number
   done
 }
 
