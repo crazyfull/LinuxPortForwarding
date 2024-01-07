@@ -56,8 +56,8 @@ function clear() {
   rulesCount=$(sudo iptables -L -t nat --line-numbers -v | grep "#portForwarding" | wc -l)
 
   # 
-  for i in {1..$rulesCount}; do
-    echo "delete rule $rule_number"
+  for ((i=1; i<=$rulesCount; i++)); do
+    echo "delete rule $i"
     sudo iptables -t nat -D PREROUTING 1
   done
 }
