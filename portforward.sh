@@ -15,7 +15,7 @@ if [[ $destPort -gt 65535 || $destPort -lt 1 ]]; then
   exit 1;
 fi
 # get current public ip
-currentvIPv4=$(curl https://ipv4.icanhazip.com) > /dev/null
+currentvIPv4=$(curl --silent https://ipv4.icanhazip.com) > /dev/null
 
 # enable ip-Frowarding
 if grep -q "^net.ipv4.ip_forward" /etc/sysctl.conf; then
