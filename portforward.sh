@@ -35,9 +35,10 @@ fi
 # reload new setting
 sudo sysctl -p
 
-sudo iptables -A PREROUTING -t nat -p tcp/udp --dport $destPort -j DNAT --to-destination $destIP:$destPort
+sudo iptables -A PREROUTING -t nat -p tcp --dport $destPort -j DNAT --to-destination $destIP:$destPort
+sudo iptables -A PREROUTING -t nat -p udp --dport $destPort -j DNAT --to-destination $destIP:$destPort
 #disable loopback
 sudo iptables -t nat -A POSTROUTING ! -s 127.0.0.1 -j MASQUERADE
 
-echo "\nadded port forwarding [TCP/UDP] from [$currentvIPv4:$destPort] to [$destIP:$destPort]"
+echo -e "\nadded port forwarding [TCP/UDP] from [$currentvIPv4:$destPort] to [$destIP:$destPort]"
 
