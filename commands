@@ -1,0 +1,5 @@
+#port forwarding
+sudo iptables -A PREROUTING -t nat -p tcp --dport 61222 -j DNAT --to-destination IP:61222
+
+#disable loopback
+sudo iptables -t nat -A POSTROUTING ! -s 127.0.0.1 -j MASQUERADE
