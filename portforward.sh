@@ -53,10 +53,10 @@ function addPort() {
 
 function clear() {
   # clear my rules by comment tag
-  rule_numbers=$(sudo iptables -L -t nat --line-numbers -v | grep "#portForwarding" | wc -l)
+  rulesCount=$(sudo iptables -L -t nat --line-numbers -v | grep "#portForwarding" | wc -l)
 
   # 
-  for rule_number in $rule_numbers; do
+  for i in {1..$rulesCount}; do
     echo "delete rule $rule_number"
     sudo iptables -t nat -D PREROUTING 1
   done
