@@ -62,8 +62,18 @@ function clear() {
   done
 }
 
+function list() {
+  # script rules list
+  sudo iptables -L -t nat --line-numbers -v | grep "#portForwarding"
+}
+
 if [[ "$1" == "clear" ]]; then
   clear
-else
-  addPort
+  exit 1;
 fi
+
+if [[ "$1" == "list" ]]; then
+  list
+  exit 1;
+fi
+addPort
