@@ -10,3 +10,9 @@ sudo iptables -A PREROUTING -t nat -p tcp --dport 61222 -j DNAT --to-destination
 
 # disable loopback
 sudo iptables -t nat -A POSTROUTING ! -s 127.0.0.1 -j MASQUERADE
+
+# get all rules
+iptables -L PREROUTING -t nat
+
+# clear all rules
+iptables -F -t nat
