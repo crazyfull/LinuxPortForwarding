@@ -14,6 +14,8 @@ if [[ $destPort -gt 65535 || $destPort -lt 1 ]]; then
   echo "error: your port value is out of range"
   exit 1;
 fi
+# get current public ip
+currentvIPv4=$(curl https://ipv4.icanhazip.com)
 
 # enable ip-Frowarding
 if grep -q "^net.ipv4.ip_forward" /etc/sysctl.conf; then
@@ -33,6 +35,9 @@ fi
 # reload new setting
 sudo sysctl -p
 
-sudo iptables -A PREROUTING -t nat -p tcp --dport $destPort -j DNAT --to-destination $destIP:$destPort
+sudo iptables -A PREROUTING -t nat -p tcp/udp --dport $destPort -j DNAT --to-destination $destIP:$destPort
 #disable loopback
 sudo iptables -t nat -A POSTROUTING ! -s 127.0.0.1 -j MASQUERADE
+
+echo "\nadded port forwarding [TCP/UDP] from [$currentvIPv4:$destPort] to [$destIP:$destPort]"
+
