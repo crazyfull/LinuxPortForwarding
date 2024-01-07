@@ -2,7 +2,7 @@
 echo -e "\nEnter your Destination IP"
 read destIP
 
-if [[ -n "${destIP}" ]]; then
+if ! [[ -n "${destIP}" ]]; then
   echo "error: The destination IP cannot be empty"
   exit 1;
 fi
