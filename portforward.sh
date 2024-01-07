@@ -15,7 +15,7 @@ if [[ $destPort -gt 65535 || $destPort -lt 1 ]]; then
   exit 1;
 fi
 # get current public ip
-currentvIPv4=$(curl https://ipv4.icanhazip.com)
+currentvIPv4=$(curl https://ipv4.icanhazip.com) > /dev/null
 
 # enable ip-Frowarding
 if grep -q "^net.ipv4.ip_forward" /etc/sysctl.conf; then
@@ -24,19 +24,20 @@ if grep -q "^net.ipv4.ip_forward" /etc/sysctl.conf; then
   # set new value
   if [ "$current_value" != "1" ]; then
     sed -i 's/^net.ipv4.ip_forward.*/net.ipv4.ip_forward = 1/' /etc/sysctl.conf
+    # reload new setting
+    sudo sysctl -p
     echo "net.ipv4.ip_forward changed to ON"
   fi
 else
   # add new line
   echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+  # reload new setting
+  sudo sysctl -p
   echo "Added net.ipv4.ip_forward line to /etc/sysctl.conf file."
 fi
 
-# reload new setting
-sudo sysctl -p
-
-sudo iptables -A PREROUTING -t nat -p tcp --dport $destPort -j DNAT --to-destination $destIP:$destPort
-sudo iptables -A PREROUTING -t nat -p udp --dport $destPort -j DNAT --to-destination $destIP:$destPort
+sudo iptables -A PREROUTING -t nat -p tcp --dport $destPort -j DNAT --to-destination $destIP:$destPort -m comment --comment "#portForwarding"
+sudo iptables -A PREROUTING -t nat -p udp --dport $destPort -j DNAT --to-destination $destIP:$destPort -m comment --comment "#portForwarding"
 #disable loopback
 sudo iptables -t nat -A POSTROUTING ! -s 127.0.0.1 -j MASQUERADE
 
