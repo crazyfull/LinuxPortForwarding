@@ -59,11 +59,6 @@ fs.file-max = 2097152
 net.core.default_qdisc=fq
 net.ipv4.tcp_congestion_control=bbr
 
-#disable ipv6
-#net.ipv6.conf.all.disable_ipv6=1
-#net.ipv6.conf.default.disable_ipv6=1
-#net.ipv6.conf.lo.disable_ipv6=1
-
 EOF
 
 	limitsPath=/etc/security/limits.conf
