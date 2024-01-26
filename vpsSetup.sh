@@ -23,11 +23,7 @@ sudo service sshd restart
 }
 
 installv2ray() {
-	#download script
-	wget http://mojz.ir/moji/install.sh && chmod +x install.sh && ./install.sh
-	sleep 3
-	#restome my default database
-	rm /etc/x-ui/x-ui.db && wget http://mojz.ir/moji/x-ui_default.db -O /etc/x-ui/x-ui.db && x-ui restart
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 
 }
 
@@ -52,6 +48,7 @@ C10kproblem() {
 	cat <<'EOF' >> $sysConfigPath
 #enable ip forward
 net.ipv4.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
 
 #C10k problem
 net.core.somaxconn = 65536
