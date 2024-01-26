@@ -48,6 +48,7 @@ C10kproblem() {
 	cat <<'EOF' >> $sysConfigPath
 #enable ip forward
 net.ipv4.ip_forward = 1
+net.ipv6.conf.all.forwarding=1
 
 #C10k problem
 net.core.somaxconn = 65536
