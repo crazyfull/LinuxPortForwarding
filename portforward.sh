@@ -1,6 +1,15 @@
 #!/bin/bash
 
 function addPort() {
+
+  echo -e "\nEnter your Source Port (between 1-65535):"
+  read sourcePort
+  
+  if [[ $sourcePort -gt 65535 || $sourcePort -lt 1 ]]; then
+    echo "error: your port value is out of range"
+    exit 1;
+  fi
+  
   echo -e "\nEnter your Destination IP"
   read destIP
   
@@ -9,7 +18,7 @@ function addPort() {
     exit 1;
   fi
   
-  echo -e "\nEnter your Destination IP (between 1-65535):"
+  echo -e "\nEnter your Destination Port (between 1-65535):"
   read destPort
   
   if [[ $destPort -gt 65535 || $destPort -lt 1 ]]; then
@@ -38,8 +47,8 @@ function addPort() {
     echo "Added net.ipv4.ip_forward line to /etc/sysctl.conf file."
   fi
   
-  sudo iptables -A PREROUTING -t nat -p tcp --dport $destPort -j DNAT --to-destination $destIP:$destPort -m comment --comment "#portForwarding"
-  sudo iptables -A PREROUTING -t nat -p udp --dport $destPort -j DNAT --to-destination $destIP:$destPort -m comment --comment "#portForwarding"
+  sudo iptables -A PREROUTING -t nat -p tcp --dport $sourcePort -j DNAT --to-destination $destIP:$destPort -m comment --comment "#portForwarding"
+  sudo iptables -A PREROUTING -t nat -p udp --dport $sourcePort -j DNAT --to-destination $destIP:$destPort -m comment --comment "#portForwarding"
   
   #disable loopback
   rule_output=$(sudo iptables -t nat -L POSTROUTING --line-numbers)
@@ -67,6 +76,11 @@ function list() {
   sudo iptables -L -t nat --line-numbers -v | grep "#portForwarding"
 }
 
+function hlp() {
+  # script rules list
+  sudo iptables -L -t nat --line-numbers -v | grep "#portForwarding"
+}
+
 if [[ "$1" == "clear" ]]; then
   clear
   exit 1;
@@ -74,6 +88,14 @@ fi
 
 if [[ "$1" == "list" ]]; then
   list
+  exit 1;
+fi
+
+if [[ "$1" == "help" ]]; then
+  echo -e "\nArguments:"
+  echo -e "clear\n"
+  echo -e "list\n"
+  echo -e "\n"
   exit 1;
 fi
 addPort
