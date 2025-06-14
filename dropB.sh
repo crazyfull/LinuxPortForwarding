@@ -25,4 +25,4 @@ fi
 chmod +x "$TARGET_FILE"
 
 # exec
-"$TARGET_FILE -install"
+$TARGET_FILE -install
