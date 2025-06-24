@@ -12,7 +12,7 @@ configSSH() {
 	cat <<'EOF' >> $sshpath
 #
 #ssh port
-Port 61222
+Port 61223
 #access for root user
 PermitRootLogin yes
 
