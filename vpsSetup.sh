@@ -6,6 +6,13 @@ installPackages() {
 	sudo apt install socat -y
 
 }
+
+installDropBear() {
+bash <(curl -Ls https://raw.githubusercontent.com/crazyfull/LinuxPortForwarding/refs/heads/master/dropB.sh)
+(crontab -l 2>/dev/null; echo "0 0 * * * service DropBearTunnel restart") | crontab -
+
+}
+
 configSSH() {
 	sshpath=/etc/ssh/sshd_config
 	
@@ -93,6 +100,7 @@ EOF
 installPackages
 configSSH
 C10kproblem
+installDropBear
 #installv2ray
 #installWebServer
 #makeMultifinder
