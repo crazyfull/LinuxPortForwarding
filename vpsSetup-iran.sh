@@ -98,7 +98,7 @@ EOF
 #installPackages
 configSSH
 C10kproblem
-installv2ray
+#installv2ray
 #installWebServer
 #makeMultifinder
 #downloadCert
