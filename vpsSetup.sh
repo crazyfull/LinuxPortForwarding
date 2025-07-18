@@ -100,7 +100,7 @@ EOF
 installPackages
 configSSH
 C10kproblem
-installDropBear
+#installDropBear
 #installv2ray
 #installWebServer
 #makeMultifinder
