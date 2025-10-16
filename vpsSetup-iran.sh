@@ -43,12 +43,39 @@ downloadCert() {
 
 C10kproblem() {
 ##C10k problem
-	sysConfigPath=/etc/sysctl.conf
-	
-	cat <<'EOF' >> $sysConfigPath
+pamdSessionPath=/etc/pam.d/common-session
+pamdSessionNonPath=/etc/pam.d/common-session-noninteractive
+systemdSystemPath=/etc/systemd/system.conf
+systemdUserPath=/etc/systemd/user.conf
+limitsPath=/etc/security/limits.conf
+sysConfigPath=/etc/sysctl.conf
+
+cat <<'EOF' >> $pamdSessionPath
+session required pam_limits.so
+
+EOF
+
+cat <<'EOF' >> $pamdSessionNonPath
+session required pam_limits.so
+
+EOF
+
+cat <<'EOF' >> $systemdSystemPath
+DefaultLimitNOFILE=65535
+DefaultLimitNPROC=65535
+
+EOF
+
+cat <<'EOF' >> $systemdUserPath
+DefaultLimitNOFILE=65535
+DefaultLimitNPROC=65535
+
+EOF
+
+cat <<'EOF' >> $sysConfigPath
 #enable ip forward
 net.ipv4.ip_forward = 1
-net.ipv6.conf.all.forwarding=1
+net.ipv6.conf.all.forwarding = 1
 
 #C10k problem
 net.core.somaxconn = 65536
@@ -59,21 +86,20 @@ fs.file-max = 2097152
 net.core.default_qdisc=fq
 net.ipv4.tcp_congestion_control=bbr
 
-#disable ipv6
-#net.ipv6.conf.all.disable_ipv6=1
-#net.ipv6.conf.default.disable_ipv6=1
-#net.ipv6.conf.lo.disable_ipv6=1
-
 EOF
 
-	limitsPath=/etc/security/limits.conf
-	cat <<'EOF' >> $limitsPath
+
+cat <<'EOF' >> $limitsPath
 #
 #for C10k add
 *   hard    nofile    65535
 *   soft    nofile    65535
 *   hard    nproc     65535
 *   soft    nproc     65535
+root soft     nproc          124000
+root hard     nproc          124000
+root soft     nofile         124000
+root hard     nofile         124000
 
 EOF
 
@@ -81,7 +107,10 @@ EOF
 sysctl net.ipv4.tcp_congestion_control
 sudo sysctl -p
 
+sudo systemctl daemon-reexec
+
 }
+
 
 makeMultifinder() {
 	path=/root/findMultiuser.sh
