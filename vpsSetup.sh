@@ -1,7 +1,7 @@
 #!/bin/sh
 installPackages() {
 	sudo apt update
-	sudo apt upgrade -y
+	#sudo apt upgrade -y
 	sudo apt install net-tools -y
 	sudo apt install socat -y
 
