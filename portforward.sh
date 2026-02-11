@@ -70,7 +70,7 @@ addPort() {
     exit 1
   fi
 
-  read -p "Enter Destination IP (can be tunnel IP like 192.168.x.x): " destIP
+  read -p "Enter Destination IP: " destIP
   if ! [[ "$destIP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
     echo "Invalid destination IP"
     exit 1
