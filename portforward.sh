@@ -1,101 +1,133 @@
 #!/bin/bash
 
-function addPort() {
+TAG="portForwarding"
 
-  echo -e "\nEnter your Source Port (between 1-65535):"
-  read sourcePort
-  
-  if [[ $sourcePort -gt 65535 || $sourcePort -lt 1 ]]; then
-    echo "error: your port value is out of range"
-    exit 1;
-  fi
-  
-  echo -e "\nEnter your Destination IP"
-  read destIP
-  
-  if ! [[ -n "${destIP}" ]]; then
-    echo "error: The destination IP cannot be empty"
-    exit 1;
-  fi
-  
-  echo -e "\nEnter your Destination Port (between 1-65535):"
-  read destPort
-  
-  if [[ $destPort -gt 65535 || $destPort -lt 1 ]]; then
-    echo "error: your port value is out of range"
-    exit 1;
-  fi
-  # get current public ip
-  currentvIPv4=$(curl --silent https://ipv4.icanhazip.com) > /dev/null
-  
-  # enable ip-Frowarding
-  if grep -q "^net.ipv4.ip_forward" /etc/sysctl.conf; then
-    # if exist value
-    current_value=$(grep "^net.ipv4.ip_forward" /etc/sysctl.conf | awk '{print $3}')
-    # set new value
-    if [ "$current_value" != "1" ]; then
-      sed -i 's/^net.ipv4.ip_forward.*/net.ipv4.ip_forward = 1/' /etc/sysctl.conf
-      # reload new setting
-      sudo sysctl -p
-      echo "net.ipv4.ip_forward changed to ON"
-    fi
-  else
-    # add new line
-    echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
-    # reload new setting
-    sudo sysctl -p
-    echo "Added net.ipv4.ip_forward line to /etc/sysctl.conf file."
-  fi
-  
-  sudo iptables -A PREROUTING -t nat -p tcp --dport $sourcePort -j DNAT --to-destination $destIP:$destPort -m comment --comment "#portForwarding"
-  sudo iptables -A PREROUTING -t nat -p udp --dport $sourcePort -j DNAT --to-destination $destIP:$destPort -m comment --comment "#portForwarding"
-  
-  #disable loopback
-  rule_output=$(sudo iptables -t nat -L POSTROUTING --line-numbers)
-  # check before added
-  if ! [[ $rule_output == *"! -s 127.0.0.1 -j MASQUERADE"* ]]; then
-    sudo iptables -t nat -A POSTROUTING ! -s 127.0.0.1 -j MASQUERADE
+if [ "$EUID" -ne 0 ]; then
+  echo "Run as root"
+  exit 1
+fi
+
+# Detect OS
+install_persistent() {
+
+  if command -v netfilter-persistent >/dev/null 2>&1 || \
+     systemctl list-unit-files | grep -q iptables.service; then
+    return
   fi
 
-  echo -e "\nadded port forwarding [TCP/UDP] from [$currentvIPv4:$destPort] to [$destIP:$destPort]"
+  if [ -f /etc/debian_version ]; then
+    apt update -y
+    DEBIAN_FRONTEND=noninteractive apt install -y iptables-persistent
+  elif [ -f /etc/redhat-release ]; then
+    yum install -y iptables-services
+    systemctl enable iptables
+    systemctl start iptables
+  fi
 }
 
-function clear() {
-  # clear my rules by comment tag
-  rulesCount=$(sudo iptables -L -t nat --line-numbers -v | grep "#portForwarding" | wc -l)
+# Detect default interface
+IFACE=$(ip route | awk '/^default/ {print $5; exit}')
+if [ -z "$IFACE" ]; then
+  echo "Cannot detect internet interface"
+  exit 1
+fi
 
-  # 
-  for ((i=1; i<=$rulesCount; i++)); do
-    echo "delete rule $i"
-    sudo iptables -t nat -D PREROUTING 1
+PUBLIC_IP=$(ip -4 addr show "$IFACE" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n1)
+
+enable_forwarding() {
+  sysctl -w net.ipv4.ip_forward=1 >/dev/null
+  sed -i '/^net.ipv4.ip_forward/d' /etc/sysctl.conf
+  echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+}
+
+save_rules() {
+  if command -v netfilter-persistent >/dev/null 2>&1; then
+    netfilter-persistent save
+  elif systemctl list-unit-files | grep -q iptables.service; then
+    service iptables save
+  fi
+}
+
+addPort() {
+
+  install_persistent
+  enable_forwarding
+
+  echo "Select protocol:"
+  echo "1) TCP"
+  echo "2) UDP"
+  read -p "Enter choice (1 or 2): " protoChoice
+
+  case "$protoChoice" in
+    1) PROTO="tcp" ;;
+    2) PROTO="udp" ;;
+    *) echo "Invalid choice"; exit 1 ;;
+  esac
+
+  read -p "Enter Source Port (1-65535): " sourcePort
+  if ! [[ "$sourcePort" =~ ^[0-9]+$ ]] || [ "$sourcePort" -lt 1 ] || [ "$sourcePort" -gt 65535 ]; then
+    echo "Invalid source port"
+    exit 1
+  fi
+
+  read -p "Enter Destination IP (can be tunnel IP like 192.168.x.x): " destIP
+  if ! [[ "$destIP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+    echo "Invalid destination IP"
+    exit 1
+  fi
+
+  read -p "Enter Destination Port (1-65535): " destPort
+  if ! [[ "$destPort" =~ ^[0-9]+$ ]] || [ "$destPort" -lt 1 ] || [ "$destPort" -gt 65535 ]; then
+    echo "Invalid destination port"
+    exit 1
+  fi
+
+  # DNAT
+  iptables -t nat -C PREROUTING -p $PROTO --dport $sourcePort \
+  -j DNAT --to-destination $destIP:$destPort \
+  -m comment --comment "$TAG" 2>/dev/null || \
+  iptables -t nat -A PREROUTING -p $PROTO --dport $sourcePort \
+  -j DNAT --to-destination $destIP:$destPort \
+  -m comment --comment "$TAG"
+
+  # MASQUERADE only on main interface
+  iptables -t nat -C POSTROUTING -o $IFACE -j MASQUERADE 2>/dev/null || \
+  iptables -t nat -A POSTROUTING -o $IFACE -j MASQUERADE
+
+  save_rules
+
+  echo "Forwarded $PROTO $PUBLIC_IP:$sourcePort → $destIP:$destPort"
+}
+
+clearRules() {
+  while iptables -t nat -S PREROUTING | grep -q "$TAG"; do
+    RULE=$(iptables -t nat -S PREROUTING | grep "$TAG" | head -n1)
+    iptables -t nat ${RULE/-A/-D}
   done
+  save_rules
+  echo "All forwarding rules removed"
 }
 
-function list() {
-  # script rules list
-  sudo iptables -L -t nat --line-numbers -v | grep "#portForwarding"
+listRules() {
+  iptables -t nat -L PREROUTING -n -v --line-numbers | grep "$TAG"
 }
 
-function hlp() {
-  # script rules list
-  sudo iptables -L -t nat --line-numbers -v | grep "#portForwarding"
-}
+case "$1" in
+  clear)
+    clearRules
+    ;;
+  list)
+    listRules
+    ;;
+  help)
+    echo "Usage:"
+    echo "$0        → add new forward"
+    echo "$0 list   → list rules"
+    echo "$0 clear  → remove rules"
+    ;;
+  *)
+    addPort
+    ;;
+esac
 
-if [[ "$1" == "clear" ]]; then
-  clear
-  exit 1;
-fi
-
-if [[ "$1" == "list" ]]; then
-  list
-  exit 1;
-fi
-
-if [[ "$1" == "help" ]]; then
-  echo -e "\nArguments:"
-  echo -e "clear\n"
-  echo -e "list\n"
-  echo -e "\n"
-  exit 1;
-fi
-addPort
+exit 0
