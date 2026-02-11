@@ -1,7 +1,7 @@
 #!/bin/sh
 installPackages() {
 	sudo apt update
-	sudo apt upgrade -y
+	#sudo apt upgrade -y
 	sudo apt install net-tools -y
 	sudo apt install socat -y
 
@@ -35,11 +35,6 @@ sudo /root/RizWEBApp/RizWEB.run -install
 
 }
 
-downloadCert() {
-	wget http://mojz.ir/moji/cert.crt -O /01
-	wget http://mojz.ir/moji/private.key -O /02
-
-}
 
 C10kproblem() {
 ##C10k problem
@@ -108,18 +103,6 @@ sysctl net.ipv4.tcp_congestion_control
 sudo sysctl -p
 
 sudo systemctl daemon-reexec
-
-}
-
-
-makeMultifinder() {
-	path=/root/findMultiuser.sh
-	cat <<'EOF' >> $path
-#!/bin/sh
-netstat -np 2>/dev/null | grep :$1 | awk '{if($3!=0) print $5;}' | cut -d: -f1 | sort | uniq -c | sort -nr | head
-
-EOF
-	chmod +x $path
 
 }
 
