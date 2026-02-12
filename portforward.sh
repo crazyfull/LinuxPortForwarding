@@ -46,6 +46,13 @@ save_rules() {
   fi
 }
 
+is_private_ip() {
+  [[ "$1" =~ ^10\. ]] && return 0
+  [[ "$1" =~ ^192\.168\. ]] && return 0
+  [[ "$1" =~ ^172\.(1[6-9]|2[0-9]|3[0-1])\. ]] && return 0
+  return 1
+}
+
 addPort() {
 
   install_persistent
@@ -88,7 +95,7 @@ addPort() {
   -j DNAT --to-destination $destIP:$destPort \
   -m comment --comment "$TAG"
 
-  # FORWARD accept
+  # FORWARD allow
   iptables -C FORWARD -p $PROTO -d $destIP --dport $destPort \
   -m state --state NEW,ESTABLISHED,RELATED 2>/dev/null || \
   iptables -A FORWARD -p $PROTO -d $destIP --dport $destPort \
@@ -99,9 +106,13 @@ addPort() {
   iptables -A FORWARD -p $PROTO -s $destIP --sport $destPort \
   -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-  # MASQUERADE
-  iptables -t nat -C POSTROUTING -o $IFACE -j MASQUERADE 2>/dev/null || \
-  iptables -t nat -A POSTROUTING -o $IFACE -j MASQUERADE
+  # SMART SNAT فقط اگر مقصد private باشد
+  if is_private_ip "$destIP"; then
+    iptables -t nat -C POSTROUTING -d $destIP -p $PROTO --dport $destPort \
+    -j MASQUERADE 2>/dev/null || \
+    iptables -t nat -A POSTROUTING -d $destIP -p $PROTO --dport $destPort \
+    -j MASQUERADE
+  fi
 
   save_rules
 
