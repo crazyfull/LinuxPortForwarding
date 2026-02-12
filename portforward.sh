@@ -7,7 +7,6 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-# Detect OS
 install_persistent() {
 
   if command -v netfilter-persistent >/dev/null 2>&1 || \
@@ -25,7 +24,6 @@ install_persistent() {
   fi
 }
 
-# Detect default interface
 IFACE=$(ip route | awk '/^default/ {print $5; exit}')
 if [ -z "$IFACE" ]; then
   echo "Cannot detect internet interface"
@@ -90,7 +88,18 @@ addPort() {
   -j DNAT --to-destination $destIP:$destPort \
   -m comment --comment "$TAG"
 
-  # MASQUERADE only on main interface
+  # FORWARD accept
+  iptables -C FORWARD -p $PROTO -d $destIP --dport $destPort \
+  -m state --state NEW,ESTABLISHED,RELATED 2>/dev/null || \
+  iptables -A FORWARD -p $PROTO -d $destIP --dport $destPort \
+  -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+
+  iptables -C FORWARD -p $PROTO -s $destIP --sport $destPort \
+  -m state --state ESTABLISHED,RELATED 2>/dev/null || \
+  iptables -A FORWARD -p $PROTO -s $destIP --sport $destPort \
+  -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+  # MASQUERADE
   iptables -t nat -C POSTROUTING -o $IFACE -j MASQUERADE 2>/dev/null || \
   iptables -t nat -A POSTROUTING -o $IFACE -j MASQUERADE
 
