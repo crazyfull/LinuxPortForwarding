@@ -106,7 +106,7 @@ addPort() {
   iptables -A FORWARD -p $PROTO -s $destIP --sport $destPort \
   -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-  # SMART SNAT فقط اگر مقصد private باشد
+  # SMART SNAT
   if is_private_ip "$destIP"; then
     iptables -t nat -C POSTROUTING -d $destIP -p $PROTO --dport $destPort \
     -j MASQUERADE 2>/dev/null || \
